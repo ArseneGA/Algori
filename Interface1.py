@@ -21,11 +21,6 @@ from matplotlib.patches import Circle
 
 from mpl_toolkits.mplot3d import Axes3D
 
-from xvfbwrapper import Xvfb
-
-# Démarrer Xvfb pour un environnement graphique virtuel
-vdisplay = Xvfb()
-vdisplay.start()
 
 
 class AlgemaApp(QMainWindow):
@@ -603,10 +598,12 @@ class AlgemaApp(QMainWindow):
                 y = params["B"] * np.sin(params["q"] * t)
 
                 # Créer un graphique
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y, linewidth=2, color='blue')
                 ax.set_facecolor('white')
                 ax.axis('off')  # Pas d'axes
+                
 
                 # Générer un nom de fichier basé sur les paramètres
                 filename = (
@@ -616,7 +613,7 @@ class AlgemaApp(QMainWindow):
                 filepath = os.path.join(output_folder, filename)
 
                 # Sauvegarder l'image
-                plt.savefig(filepath, dpi=300, bbox_inches='tight', pad_inches=0.1, facecolor='white')
+                plt.savefig(filepath, dpi=300, bbox_inches='tight', pad_inches=0, facecolor='white')
                 plt.close(fig)  # Fermer la figure pour économiser de la mémoire
 
                 print(f"Image enregistrée : {filepath}")
@@ -724,7 +721,8 @@ class AlgemaApp(QMainWindow):
                     z = current_params["C"] * np.sin(current_params["r"] * t)
 
                     # Création de l'image
-                    fig = plt.figure()
+                    fig, ax = plt.subplots(figsize=(6, 6))
+                    ax.set_aspect('equal')
                     ax = fig.add_subplot(111, projection='3d')
                     ax.plot(x, y, z, color=current_params["couleur"], linewidth=current_params["épaisseur"])
                     ax.set_facecolor(current_params["fond"])
@@ -797,6 +795,7 @@ class AlgemaApp(QMainWindow):
 
                 # Tracer la courbe
                 fig, ax = plt.subplots(figsize=(6, 6), dpi=100, subplot_kw={"projection": "3d"})
+                ax.set_aspect('equal')
                 ax.plot(x, y, z, color='blue')
                 ax.set_facecolor('white')
                 ax.axis('off')
@@ -916,7 +915,8 @@ class AlgemaApp(QMainWindow):
                 y = r * np.sin(theta)
 
                 # Création de la figure
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y, linewidth=2)
                 ax.axis('off')
                 ax.set_aspect('equal')
@@ -1025,7 +1025,8 @@ class AlgemaApp(QMainWindow):
                     folder,
                     f"Clelie3D_a{params['a']:.2f}_b{params['b']:.2f}_k{params['k']:.2f}_longueur{params['longueur']:.2f}.png"
                 )
-                fig = plt.figure()
+                fig, ax = plt.subplots(figsize=(6, 6, 6))
+                ax.set_aspect('equal')
                 ax = fig.add_subplot(111, projection='3d')
                 ax.plot(x, y, z)
                 ax.set_axis_off()
@@ -1127,7 +1128,8 @@ class AlgemaApp(QMainWindow):
                     folder,
                     f"Exponentielle_n{n}_theta{theta_max:.2f}_points{num_points}.png"
                 )
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y)
                 ax.axis("off")
                 plt.savefig(filename, bbox_inches='tight', pad_inches=0)
@@ -1396,7 +1398,8 @@ class AlgemaApp(QMainWindow):
                 y = np.sin(q * t)
 
                 # Création de la figure
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y, linewidth=2)
                 ax.axis("off")
 
@@ -1551,7 +1554,8 @@ class AlgemaApp(QMainWindow):
                 z = np.sin(r * t)
 
                 # Création de la figure
-                fig = plt.figure()
+                fig, ax = plt.subplots(figsize=(6, 6, 6))
+                ax.set_aspect('equal')
                 ax = fig.add_subplot(111, projection='3d')
                 ax.plot(x, y, z, linewidth=2)
                 ax.axis("off")
@@ -1718,7 +1722,8 @@ class AlgemaApp(QMainWindow):
                 y = r * np.sin(theta)
 
                 # Création de la figure
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y, linewidth=2)
                 ax.axis("off")
 
@@ -1877,7 +1882,8 @@ class AlgemaApp(QMainWindow):
                 z = r * np.cos(k * t)
 
                 # Création de la figure
-                fig = plt.figure()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax = fig.add_subplot(111, projection='3d')
                 ax.plot(x, y, z, linewidth=2)
                 ax.axis("off")
@@ -1998,7 +2004,8 @@ class AlgemaApp(QMainWindow):
                 y = sum(a * np.sin(b * t) for a, b in zip(a_values, b_values))
 
                 # Sauvegarder l'image
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y, linewidth=2)
                 ax.axis("off")
                 filepath = os.path.join(save_directory, f"frame_{frame}.png")
@@ -2058,7 +2065,8 @@ class AlgemaApp(QMainWindow):
                 y = sum(a * np.sin(b * t) for a, b in zip(a_values, b_values))
 
                 # Création de la figure
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y, linewidth=2)
                 ax.axis("off")
 
@@ -2114,7 +2122,8 @@ class AlgemaApp(QMainWindow):
             y = sum(a * np.sin(b * t) for a, b in zip(a_values, b_values))
 
             # Afficher dans l'interface
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(6, 6))
+            ax.set_aspect('equal')
             ax.plot(x, y, linewidth=2)
             ax.axis("off")
 
@@ -2806,59 +2815,7 @@ class AlgemaApp(QMainWindow):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ====================== FIN Explication visuelle ===========================
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2905,7 +2862,8 @@ class AlgemaApp(QMainWindow):
                 y = B * np.sin(q * t)
 
                 # Plot
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
                 ax.axis('off')
@@ -2954,7 +2912,8 @@ class AlgemaApp(QMainWindow):
                 x = A * np.sin(p * t + delta)
                 y = B * np.sin(q * t)
 
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
+                ax.set_aspect('equal')
                 ax.plot(x, y, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
                 ax.axis('off')
@@ -3741,10 +3700,7 @@ def main():
     window.show()
     app.exec()
 
-    vdisplay.stop()
-
 
 
 if __name__ == "__main__":
     main()
-
