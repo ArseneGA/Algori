@@ -1025,8 +1025,7 @@ class AlgemaApp(QMainWindow):
                     folder,
                     f"Clelie3D_a{params['a']:.2f}_b{params['b']:.2f}_k{params['k']:.2f}_longueur{params['longueur']:.2f}.png"
                 )
-                fig, ax = plt.subplots(figsize=(6, 6, 6))
-                ax.set_aspect('equal')
+                fig, ax = plt.subplots(figsize=(6, 6))
                 ax = fig.add_subplot(111, projection='3d')
                 ax.plot(x, y, z)
                 ax.set_axis_off()
@@ -1403,15 +1402,99 @@ class AlgemaApp(QMainWindow):
                 ax.plot(x, y, linewidth=2)
                 ax.axis("off")
 
+                # Générer un nom de fichier unique avec les paramètres
+                filename = f"lissajous2D_p{p:.2f}_q{q:.2f}_delta{delta:.2f}_frame{frame}.{file_format}"
+                filepath = os.path.join(save_directory, filename)
+
                 # Enregistrer l'image
-                filepath = os.path.join(save_directory, f"frame_{frame}.{file_format}")
                 plt.savefig(filepath, dpi=300, format=file_format)
                 plt.close(fig)
 
                 # Aperçu de la première courbe
                 if frame == 1:
                     buf = BytesIO()
-                    fig.savefig(buf, format=file_format)
+                    plt.savefig(buf, format=file_format)
+                    buf.seek(0)
+                    img = QImage()
+                    img.loadFromData(buf.getvalue())
+                    pixmap = QPixmap.fromImage(img)
+                    preview_area.setPixmap(pixmap)
+                    preview_area.adjustSize()
+
+            print(f"Toutes les courbes ont été enregistrées dans {save_directory}")
+
+        except ValueError as ve:
+            print(f"Erreur de validation : {ve}")
+        except Exception as e:
+            print(f"Erreur lors de la génération : {e}")
+
+
+    def generate_lissajous_3d_step(self, inputs, preview_area, preview_layout):
+        """
+        Génère des courbes Lissajous 3D avec un nombre fixe de frames et les enregistre.
+        """
+        try:
+            # Choix du format de fichier
+            chosen_format, _ = QFileDialog.getSaveFileName(
+                self, "Choisissez le format de fichier", "", "PNG Files (*.png);;SVG Files (*.svg);;PLY Files (*.ply)"
+            )
+            file_format = "svg" if "svg" in chosen_format.lower() else "png"
+
+            # Récupérer le répertoire pour enregistrer les courbes
+            save_directory = QFileDialog.getExistingDirectory(self, "Choisissez un dossier pour enregistrer les courbes")
+            if not save_directory:
+                return
+
+            # Récupérer les paramètres de début et de fin
+            params = {}
+            for param, bounds in inputs.items():
+                if param == "frame_count":
+                    continue
+                start = float(bounds["start"].text())
+                end = float(bounds["end"].text())
+                params[param] = {"start": start, "end": end}
+
+            # Récupérer le nombre de frames
+            frame_count = int(inputs["frame_count"].text())
+            if frame_count <= 0:
+                raise ValueError("Le nombre de frames doit être un entier strictement positif.")
+
+            # Calculer les incréments pour chaque paramètre
+            increments = {param: (values["end"] - values["start"]) / (frame_count - 1) for param, values in params.items()}
+
+            # Générer les images pour chaque étape
+            for frame in range(1, frame_count + 1):
+                # Récupérer les paramètres courants
+                p = params["p"]["start"] + increments["p"] * (frame - 1)
+                q = params["q"]["start"] + increments["q"] * (frame - 1)
+                r = params["r"]["start"] + increments["r"] * (frame - 1)
+                delta = params["delta"]["start"] + increments["delta"] * (frame - 1)
+                phi = params["phi"]["start"] + increments["phi"] * (frame - 1)
+
+                # Générer la courbe
+                t = np.linspace(0, 2 * np.pi, 1000)
+                x = np.sin(p * t + delta)
+                y = np.sin(q * t + phi)
+                z = np.sin(r * t)
+
+                # Création de la figure
+                fig = plt.figure(figsize=(6, 6))
+                ax = fig.add_subplot(111, projection='3d')
+                ax.plot(x, y, z, linewidth=2)
+                ax.axis("off")
+
+                # Générer un nom de fichier unique avec les paramètres
+                filename = f"lissajous3D_p{p:.2f}_q{q:.2f}_r{r:.2f}_delta{delta:.2f}_phi{phi:.2f}_frame{frame}.{file_format}"
+                filepath = os.path.join(save_directory, filename)
+
+                # Enregistrer l'image
+                plt.savefig(filepath, dpi=300, format=file_format)
+                plt.close(fig)
+
+                # Aperçu de la première courbe
+                if frame == 1:
+                    buf = BytesIO()
+                    plt.savefig(buf, format=file_format)
                     buf.seek(0)
                     img = QImage()
                     img.loadFromData(buf.getvalue())
@@ -1554,21 +1637,25 @@ class AlgemaApp(QMainWindow):
                 z = np.sin(r * t)
 
                 # Création de la figure
-                fig, ax = plt.subplots(figsize=(6, 6, 6))
-                ax.set_aspect('equal')
+                fig = plt.figure(figsize=(6, 6))
                 ax = fig.add_subplot(111, projection='3d')
                 ax.plot(x, y, z, linewidth=2)
                 ax.axis("off")
 
+                # Générer un nom de fichier unique avec les paramètres
+                filename = (
+                    f"lissajous3D_p{p:.2f}_q{q:.2f}_r{r:.2f}_delta{delta:.2f}_phi{phi:.2f}_frame{frame}.{file_format}"
+                )
+                filepath = os.path.join(save_directory, filename)
+
                 # Enregistrer l'image
-                filepath = os.path.join(save_directory, f"frame_{frame}.{file_format}")
                 plt.savefig(filepath, dpi=300, format=file_format)
                 plt.close(fig)
 
                 # Aperçu de la première courbe
                 if frame == 1:
                     buf = BytesIO()
-                    fig.savefig(buf, format=file_format)
+                    plt.savefig(buf, format=file_format)
                     buf.seek(0)
                     img = QImage()
                     img.loadFromData(buf.getvalue())
@@ -1582,6 +1669,7 @@ class AlgemaApp(QMainWindow):
             print(f"Erreur de validation : {ve}")
         except Exception as e:
             print(f"Erreur lors de la génération : {e}")
+
 
 
     def create_superformule_step_tab(self):
@@ -1691,17 +1779,6 @@ class AlgemaApp(QMainWindow):
             if frame_count <= 0:
                 raise ValueError("Le nombre de frames doit être un entier strictement positif.")
 
-            # Nettoyer la zone de prévisualisation
-            for i in reversed(range(preview_layout.count())):
-                widget = preview_layout.itemAt(i).widget()
-                if widget:
-                    widget.deleteLater()
-
-            # Ajouter une étiquette pour indiquer le nombre de frames
-            total_frames_label = QLabel(f"Nombre total de frames générées : {frame_count}")
-            total_frames_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            preview_layout.insertWidget(0, total_frames_label)
-
             # Calculer les incréments pour chaque paramètre
             increments = {param: (values["end"] - values["start"]) / (frame_count - 1) for param, values in params.items()}
 
@@ -1727,15 +1804,20 @@ class AlgemaApp(QMainWindow):
                 ax.plot(x, y, linewidth=2)
                 ax.axis("off")
 
+                # Générer un nom de fichier unique avec les paramètres
+                filename = (
+                    f"superformule_m{m:.2f}_a{a:.2f}_b{b:.2f}_n1{n1:.2f}_n2{n2:.2f}_n3{n3:.2f}_frame{frame}.{file_format}"
+                )
+                filepath = os.path.join(save_directory, filename)
+
                 # Enregistrer l'image
-                filepath = os.path.join(save_directory, f"frame_{frame}.{file_format}")
                 plt.savefig(filepath, dpi=300, format=file_format)
                 plt.close(fig)
 
                 # Aperçu de la première courbe
                 if frame == 1:
                     buf = BytesIO()
-                    fig.savefig(buf, format=file_format)
+                    plt.savefig(buf, format=file_format)
                     buf.seek(0)
                     img = QImage()
                     img.loadFromData(buf.getvalue())
@@ -1749,6 +1831,7 @@ class AlgemaApp(QMainWindow):
             print(f"Erreur de validation : {ve}")
         except Exception as e:
             print(f"Erreur lors de la génération : {e}")
+
 
 
 
@@ -2003,12 +2086,20 @@ class AlgemaApp(QMainWindow):
                 x = sum(a * np.cos(b * t) for a, b in zip(a_values, b_values))
                 y = sum(a * np.sin(b * t) for a, b in zip(a_values, b_values))
 
-                # Sauvegarder l'image
+                # Création de la figure
                 fig, ax = plt.subplots(figsize=(6, 6))
                 ax.set_aspect('equal')
                 ax.plot(x, y, linewidth=2)
                 ax.axis("off")
-                filepath = os.path.join(save_directory, f"frame_{frame}.png")
+
+                # Générer un nom de fichier unique avec les paramètres
+                filename = (
+                    f"exponentielle_a{a_values[0]:.2f}_{a_values[1]:.2f}_{a_values[2]:.2f}_"
+                    f"b{b_values[0]:.2f}_{b_values[1]:.2f}_{b_values[2]:.2f}_frame{frame}.png"
+                )
+                filepath = os.path.join(save_directory, filename)
+
+                # Sauvegarder l'image
                 plt.savefig(filepath, dpi=300, format="png")
                 plt.close(fig)
 
@@ -2018,6 +2109,7 @@ class AlgemaApp(QMainWindow):
             print(f"Erreur de validation : {ve}")
         except Exception as e:
             print(f"Erreur lors de la génération : {e}")
+
 
 
     def generate_exponentielle_step(self, inputs, preview_area, preview_layout):
@@ -2222,7 +2314,6 @@ class AlgemaApp(QMainWindow):
         return curve_widget
 
 
-
     def generate_hypertrochoid_step(self, inputs, preview_area, preview_layout):
         """
         Génère des courbes Hypertrochoïdes avec un nombre fixe de frames et les enregistre.
@@ -2268,19 +2359,23 @@ class AlgemaApp(QMainWindow):
                 y = (R - r) * np.sin(t) - d * np.sin((R - r) * t / r)
 
                 # Création de la figure
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
                 ax.plot(x, y, linewidth=2)
                 ax.axis("off")
+                ax.set_aspect('equal')
+
+                # Générer un nom de fichier unique avec les paramètres
+                filename = f"hypertrochoid_R{R:.2f}_r{r:.2f}_d{d:.2f}_frame{frame}.{file_format}"
+                filepath = os.path.join(save_directory, filename)
 
                 # Enregistrer l'image
-                filepath = os.path.join(save_directory, f"frame_{frame}.{file_format}")
                 plt.savefig(filepath, dpi=300, format=file_format)
                 plt.close(fig)
 
                 # Aperçu de la première courbe
                 if frame == 1:
                     buf = BytesIO()
-                    fig.savefig(buf, format=file_format)
+                    plt.savefig(buf, format=file_format)
                     buf.seek(0)
                     img = QImage()
                     img.loadFromData(buf.getvalue())
@@ -2294,6 +2389,7 @@ class AlgemaApp(QMainWindow):
             print(f"Erreur de validation : {ve}")
         except Exception as e:
             print(f"Erreur lors de la génération : {e}")
+
 
 
 
@@ -2917,9 +3013,10 @@ class AlgemaApp(QMainWindow):
                 ax.plot(x, y, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
                 ax.axis('off')
+                format = file_name.split('.')[-1].lower()
 
                 # Save plot
-                plt.savefig(file_name, facecolor=fond, dpi=300 if file_name.endswith('.png') else 100)
+                plt.savefig(file_name, facecolor=fond,format = format)
                 plt.close(fig)
                 print(f"Courbe enregistrée sous {file_name}")
             except Exception as e:
@@ -3036,8 +3133,9 @@ class AlgemaApp(QMainWindow):
                 y = B * np.sin(q * t)
                 z = C * np.sin(r * t + phi)
 
-                fig = plt.figure()
+                fig = plt.figure(figsize=(6, 6))
                 ax = fig.add_subplot(111, projection='3d')
+                ax.set_aspect('equal')
                 ax.plot(x, y, z, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
                 ax.axis('off')
@@ -3048,7 +3146,8 @@ class AlgemaApp(QMainWindow):
                 if not file_name:
                     return
                 # Save plot
-                plt.savefig(file_name, facecolor=fond, dpi=300 if file_name.endswith('.png') else 100)
+                format = file_name.split('.')[-1].lower()
+                plt.savefig(file_name, facecolor=fond, format = format)
                 plt.close(fig)
                 print(f"Courbe enregistrée sous {file_name}")
             except Exception as e:
@@ -3183,13 +3282,14 @@ class AlgemaApp(QMainWindow):
                 y = r * np.sin(theta)
 
                 # Plot and save
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
                 ax.plot(x, y, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
                 ax.axis('off')
 
                 # Save plot
-                plt.savefig(file_name, facecolor=fond, dpi=300 if file_name.endswith('.png') else 100)
+                format = file_name.split('.')[-1].lower()
+                plt.savefig(file_name, facecolor=fond, format = format)
                 plt.close(fig)
                 print(f"Courbe enregistrée sous {file_name}")
             except Exception as e:
@@ -3330,8 +3430,10 @@ class AlgemaApp(QMainWindow):
                 ax.set_facecolor(fond)
                 ax.axis('off')
 
+                format = file_name.split('.')[-1].lower()
+
                 # Save plot
-                plt.savefig(file_name, facecolor=fond, dpi=300 if file_name.endswith('.png') else 100)
+                plt.savefig(file_name, facecolor=fond, format = format)
                 plt.close(fig)
                 print(f"Courbe enregistrée sous {file_name}")
             except Exception as e:
@@ -3520,7 +3622,8 @@ class AlgemaApp(QMainWindow):
                     return
 
                 fig = self.plot_trajectory(n, a, b, (0, theta_max), color, background, line_width, num_points)
-                fig.savefig(file_name, format='png', facecolor=background)
+                format = file_name.split('.')[-1].lower()
+                fig.savefig(file_name, format=format, facecolor=background)
                 plt.close(fig)
                 print(f"Courbe enregistrée sous {file_name}")
             except Exception as e:
@@ -3614,7 +3717,7 @@ class AlgemaApp(QMainWindow):
             x = (R - r) * np.cos(t) + d * np.cos((R - r) * t / r)
             y = (R - r) * np.sin(t) - d * np.sin((R - r) * t / r)
 
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize = (6,6))
             ax.plot(x, y, color=color, linewidth=line_width)
             ax.set_facecolor(background)
             ax.axis('off')
@@ -3668,7 +3771,8 @@ class AlgemaApp(QMainWindow):
                     return
 
                 fig = plot_hypertrochoid(R, r, d, num_points, color, background, line_width)
-                fig.savefig(file_name, format='png', facecolor=background)
+                format = file_name.split('.')[-1].lower()
+                fig.savefig(file_name, format=format, facecolor=background)
                 plt.close(fig)
                 print(f"Courbe enregistrée sous {file_name}")
             except Exception as e:
