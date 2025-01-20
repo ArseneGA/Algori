@@ -269,7 +269,7 @@ class AlgemaApp(QMainWindow):
                 y += a[i] * np.sin(b[i] * theta)
 
             # Création de la figure
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(6, 6))
             ax.plot(x, y, color=color, linewidth=line_width)
             ax.set_facecolor(background)
             ax.axis('off')
@@ -960,7 +960,7 @@ class AlgemaApp(QMainWindow):
         inputs = {}
 
         for param, default_range in {
-            "a": (1, 5), "b": (1, 5), "k": (0.1, 10), "longueur": (2 * np.pi, 10 * np.pi)
+            "a": (1, 5), "m": (1, 5), "theta max": (2 * np.pi, 10 * np.pi)
         }.items():
             param_layout = QHBoxLayout()
             label = QLabel(f"{param} :")
@@ -1014,16 +1014,19 @@ class AlgemaApp(QMainWindow):
                     )
 
                 # Génération de la courbe Clélie 3D
-                t = np.linspace(0, params["longueur"], 1000)
-                r = params["a"] + params["b"] * np.sin(params["k"] * t)
-                x = r * np.cos(t)
-                y = r * np.sin(t)
-                z = r * np.cos(params["k"] * t)
+                a = params["a"]
+                m = params["m"]
+                theta_max = params["theta max"]
+                theta = np.linspace(0, theta_max, 10000)
+
+                x = a * np.cos(m * theta) * np.sin(theta)
+                y = a * np.sin(m * theta) * np.sin(theta)
+                z = a * np.cos(theta)
 
                 # Enregistrer la courbe
                 filename = os.path.join(
                     folder,
-                    f"Clelie3D_a{params['a']:.2f}_b{params['b']:.2f}_k{params['k']:.2f}_longueur{params['longueur']:.2f}.png"
+                    f"Clelie3D_a{a}_m{m}_theta_max{theta_max}.png"
                 )
                 fig, ax = plt.subplots(figsize=(6, 6))
                 ax = fig.add_subplot(111, projection='3d')
@@ -1220,8 +1223,8 @@ class AlgemaApp(QMainWindow):
 
                 # Génération de la courbe Hypertrochoïde
                 t = np.linspace(0, 2 * np.pi, num_points)
-                x = (R - r) * np.cos(t) + d * np.cos((R - r) * t / r)
-                y = (R - r) * np.sin(t) - d * np.sin((R - r) * t / r)
+                x = (R - r) * np.cos(t) + d * np.cos((R - r) / r * t)
+                y = (R - r) * np.sin(t) - d * np.sin((R - r) / r * t)
 
                 # Enregistrer la courbe
                 filename = os.path.join(
@@ -1859,7 +1862,7 @@ class AlgemaApp(QMainWindow):
         parameters_layout = QVBoxLayout()
         inputs = {}
 
-        for param in ["a", "b", "k"]:
+        for param in ["a", "m", "theta_max", "n_points"]:
             param_layout = QHBoxLayout()
             label = QLabel(f"{param} (début et fin) :")
             start_input = QLineEdit("1")
@@ -1954,15 +1957,15 @@ class AlgemaApp(QMainWindow):
             for frame in range(1, frame_count + 1):
                 # Récupérer les paramètres courants
                 a = params["a"]["start"] + increments["a"] * (frame - 1)
-                b = params["b"]["start"] + increments["b"] * (frame - 1)
-                k = params["k"]["start"] + increments["k"] * (frame - 1)
+                m = params["m"]["start"] + increments["m"] * (frame - 1)
+                theta_max = params["theta max"]["start"] + increments["theta max"] * (frame - 1)
+                n_points = int(params["n_points"]["start"] + increments["n_points"] * (frame - 1))
 
                 # Générer la courbe
-                t = np.linspace(0, 2 * np.pi, 1000)
-                r = a + b * np.sin(k * t)
-                x = r * np.cos(t)
-                y = r * np.sin(t)
-                z = r * np.cos(k * t)
+                theta = np.linspace(0, theta_max, n_points)
+                x = a * np.cos(m * theta) * np.sin(theta)
+                y = a * np.sin(m * theta) * np.sin(theta)
+                z = a * np.cos(theta)
 
                 # Création de la figure
                 fig, ax = plt.subplots(figsize=(6, 6))
@@ -2355,8 +2358,8 @@ class AlgemaApp(QMainWindow):
 
                 # Générer la courbe Hypertrochoïde
                 t = np.linspace(0, 2 * np.pi, 1000)
-                x = (R - r) * np.cos(t) + d * np.cos((R - r) * t / r)
-                y = (R - r) * np.sin(t) - d * np.sin((R - r) * t / r)
+                x = (R - r) * np.cos(t) + d * np.cos((R - r) / r * t)
+                y = (R - r) * np.sin(t) - d * np.sin((R - r) / r * t)
 
                 # Création de la figure
                 fig, ax = plt.subplots(figsize=(6, 6))
@@ -2763,150 +2766,7 @@ class AlgemaApp(QMainWindow):
 
 
 
-    def generate_clelie_3d_construction(self, output_dir, a, b, num_frames, length, line_width=2, point_size=6, show_axes=False):
-        """
-        Génère les frames pour la construction 3D de la trajectoire Clélie sur une sphère.
-
-        Parameters:
-            output_dir (str): Répertoire pour enregistrer les frames.
-            a (float): Paramètre a de la Clélie.
-            b (float): Paramètre b de la Clélie.
-            num_frames (int): Nombre de frames à générer.
-            length (float): Longueur de la courbe (en multiples de π).
-            line_width (int): Épaisseur des lignes.
-            point_size (int): Taille des points mobiles.
-            show_axes (bool): Si True, affiche les axes.
-        """
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        # Génération des points temporels
-        t = np.linspace(0, length * np.pi, num_frames)
-        x_t = np.sin(a * t) * np.cos(b * t)
-        y_t = np.sin(a * t) * np.sin(b * t)
-        z_t = np.cos(a * t)
-
-        # Paramètres pour la sphère
-        sphere_radius = 1
-        sphere_u = np.linspace(0, 2 * np.pi, 100)
-        sphere_v = np.linspace(0, np.pi, 100)
-        sphere_x = sphere_radius * np.outer(np.sin(sphere_v), np.cos(sphere_u))
-        sphere_y = sphere_radius * np.outer(np.sin(sphere_v), np.sin(sphere_u))
-        sphere_z = sphere_radius * np.outer(np.cos(sphere_v), np.ones_like(sphere_u))
-
-        for i in tqdm(range(num_frames), desc="Génération des frames"):
-            fig = plt.figure(figsize=(10, 10))
-            ax = fig.add_subplot(111, projection='3d')
-            ax.set_facecolor("black")
-
-            # Limites pour l'axe
-            ax.set_xlim([-1.5, 1.5])
-            ax.set_ylim([-1.5, 1.5])
-            ax.set_zlim([-1.5, 1.5])
-            ax.set_box_aspect([1, 1, 1])  # Aspects égaux pour tous les axes
-            if not show_axes:
-                ax.axis('off')
-
-            # Dessin de la sphère
-            ax.plot_surface(sphere_x, sphere_y, sphere_z, color="white", alpha=0.1, edgecolor="none")
-
-            # Traçage de la courbe jusqu'au point courant
-            ax.plot(x_t[:i + 1], y_t[:i + 1], z_t[:i + 1], "-", color="white", linewidth=line_width)
-
-            # Position actuelle
-            current_x, current_y, current_z = x_t[i], y_t[i], z_t[i]
-
-            # Points mobiles
-            ax.scatter(current_x, current_y, current_z, color="red", s=point_size * 10)
-
-            # Projections dans les trois plans
-            ax.plot([current_x, current_x], [current_y, current_y], [-1.5, current_z], linestyle="--", color="white", linewidth=line_width - 0.5)
-            ax.plot([current_x, current_x], [-1.5, current_y], [current_z, current_z], linestyle="--", color="white", linewidth=line_width - 0.5)
-            ax.plot([-1.5, current_x], [current_y, current_y], [current_z, current_z], linestyle="--", color="white", linewidth=line_width - 0.5)
-
-            # Sauvegarder la frame
-            frame_path = os.path.join(output_dir, f"frame_{i + 1:04d}.png")
-            plt.savefig(frame_path, facecolor="black")
-            plt.close(fig)
-
-        print(f"Frames enregistrées dans : {output_dir}")
-
-
-    def create_clelie_3d_construction_tab(self):
-        """
-        Création de l'onglet pour la construction de la trajectoire Clélie 3D,
-        permettant aux utilisateurs d'entrer des paramètres et de générer des frames.
-        """
-        construction_widget = QWidget()
-        layout = QVBoxLayout()
-
-        # Titre
-        title = QLabel("Construction de Clélie 3D")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 16px; font-weight: bold;")
-        layout.addWidget(title)
-
-        # Champs de saisie des paramètres
-        param_layout = QVBoxLayout()
-        inputs = {}
-        for param, default in {"a": 1.0, "b": 1.0, "num_frames": 500, "length": 2.0}.items():
-            param_label = QLabel(f"{param} :")
-            param_input = QLineEdit(str(default))
-            param_layout.addWidget(param_label)
-            param_layout.addWidget(param_input)
-            inputs[param] = param_input
-
-        layout.addLayout(param_layout)
-
-        # Checkbox pour afficher les axes
-        axes_checkbox = QCheckBox("Afficher les axes")
-        axes_checkbox.setChecked(False)
-        layout.addWidget(axes_checkbox)
-
-        # Bouton pour générer les frames
-        generate_button = QPushButton("Générer les frames")
-        layout.addWidget(generate_button)
-
-        # Bouton retour
-        back_button = QPushButton("Retour")
-        back_button.clicked.connect(lambda: self.close_tab(construction_widget))
-        layout.addWidget(back_button)
-
-        # Fonction pour gérer la génération des frames
-        def generate_frames():
-            try:
-                a = float(inputs["a"].text())
-                b = float(inputs["b"].text())
-                num_frames = int(inputs["num_frames"].text())
-                length = float(inputs["length"].text())
-                show_axes = axes_checkbox.isChecked()
-
-                # Demander le répertoire de sortie
-                output_dir = QFileDialog.getExistingDirectory(self, "Choisissez un dossier pour enregistrer les frames")
-                if not output_dir:
-                    return
-
-                # Générer les frames
-                self.generate_clelie_3d_construction(
-                    output_dir=output_dir,
-                    a=a,
-                    b=b,
-                    num_frames=num_frames,
-                    length=length,
-                    line_width=2,
-                    point_size=6,
-                    show_axes=show_axes
-                )
-
-                QMessageBox.information(self, "Succès", f"Frames enregistrées dans : {output_dir}")
-            except Exception as e:
-                QMessageBox.critical(self, "Erreur", f"Erreur lors de la génération : {str(e)}")
-
-        generate_button.clicked.connect(generate_frames)
-
-        construction_widget.setLayout(layout)
-        return construction_widget
-
+    
 
 
 
@@ -2928,7 +2788,7 @@ class AlgemaApp(QMainWindow):
         inputs = {}
         for param, default in {
             "A": 1, "B": 1, "p": 1, "q": 1, "delta": 0, 
-            "longueur": 2 * np.pi, "couleur": "blue", "fond": "white", "épaisseur": 2
+            "longueur": 2 * np.pi,"nombre de points": 1000, "couleur": "blue", "fond": "white", "épaisseur": 2
         }.items():
             label = QLabel(f"{param}:")
             input_field = QLineEdit(str(default))
@@ -2951,9 +2811,10 @@ class AlgemaApp(QMainWindow):
                 couleur = inputs["couleur"].text()
                 fond = inputs["fond"].text()
                 epaisseur = float(inputs["épaisseur"].text())
+                nombre_de_point = int(inputs["nombre de points"].text())
 
                 # Generate Lissajous curve
-                t = np.linspace(0, longueur, 1000)
+                t = np.linspace(0, longueur, nombre_de_point)
                 x = A * np.sin(p * t + delta)
                 y = B * np.sin(q * t)
 
@@ -2996,15 +2857,16 @@ class AlgemaApp(QMainWindow):
                 couleur = inputs["couleur"].text()
                 fond = inputs["fond"].text()
                 epaisseur = float(inputs["épaisseur"].text())
+                nombre_de_point = int(inputs["nombre de points"].text())
 
-                default_name = f"Lissajous2D_A{A}_B{B}_p{p}_q{q}_delta{delta}_longueur{longueur}.png"
+                default_name = f"Lissajous2D_A{A}_B{B}_p{p}_q{q}_delta{delta}_longueur{longueur}_points{nombre_de_point}.svg"
 
                 file_types = "PNG Files (*.png);;SVG Files (*.svg);;PLY Files (*.ply)"
                 file_name, _ = QFileDialog.getSaveFileName(self, "Enregistrer la courbe", default_name, file_types)
                 if not file_name:
                     return
 
-                t = np.linspace(0, longueur, 1000)
+                t = np.linspace(0, longueur, nombre_de_point)
                 x = A * np.sin(p * t + delta)
                 y = B * np.sin(q * t)
 
@@ -3068,7 +2930,7 @@ class AlgemaApp(QMainWindow):
         inputs = {}
         for param, default in {
             "A": 1, "B": 1, "C": 1, "p": 1, "q": 1, "r": 1,
-            "delta": 0, "phi": 0, "longueur": 2 * np.pi,
+            "delta": 0, "phi": 0, "longueur": 2 * np.pi, "nombre de points": 1000,
             "couleur": "blue", "fond": "white", "épaisseur": 2
         }.items():
             label = QLabel(f"{param}:")
@@ -3087,14 +2949,15 @@ class AlgemaApp(QMainWindow):
                 p, q, r = float(inputs["p"].text()), float(inputs["q"].text()), float(inputs["r"].text())
                 delta, phi, longueur = float(inputs["delta"].text()), float(inputs["phi"].text()), float(inputs["longueur"].text())
                 couleur, fond, epaisseur = inputs["couleur"].text(), inputs["fond"].text(), float(inputs["épaisseur"].text())
+                nombre_de_point = int(inputs["nombre de points"].text())
 
                 # Generate Lissajous 3D curve
-                t = np.linspace(0, longueur, 1000)
+                t = np.linspace(0, longueur, nombre_de_point)
                 x = A * np.sin(p * t + delta)
                 y = B * np.sin(q * t)
                 z = C * np.sin(r * t + phi)
 
-                fig = plt.figure()
+                fig = plt.figure(figsize=(6, 6))
                 ax = fig.add_subplot(111, projection='3d')
                 ax.plot(x, y, z, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
@@ -3126,9 +2989,10 @@ class AlgemaApp(QMainWindow):
                 p, q, r = float(inputs["p"].text()), float(inputs["q"].text()), float(inputs["r"].text())
                 delta, phi, longueur = float(inputs["delta"].text()), float(inputs["phi"].text()), float(inputs["longueur"].text())
                 couleur, fond, epaisseur = inputs["couleur"].text(), inputs["fond"].text(), float(inputs["épaisseur"].text())
+                nombre_de_point = int(inputs["nombre de points"].text())
 
                 # Generate Lissajous 3D curve
-                t = np.linspace(0, longueur, 1000)
+                t = np.linspace(0, longueur, nombre_de_point)
                 x = A * np.sin(p * t + delta)
                 y = B * np.sin(q * t)
                 z = C * np.sin(r * t + phi)
@@ -3140,7 +3004,7 @@ class AlgemaApp(QMainWindow):
                 ax.set_facecolor(fond)
                 ax.axis('off')
 
-                default_name = f"Lissajous3D_A{A}_B{B}_C{C}_p{p}_q{q}_r{r}_delta{delta}_phi{phi}_longueur{longueur}.png"
+                default_name = f"Lissajous3D_A{A}_B{B}_C{C}_p{p}_q{q}_r{r}_delta{delta}_phi{phi}_longueur{longueur}_nombre_de_point{nombre_de_point}.svg"
                 file_types = "PNG Files (*.png);;SVG Files (*.svg);;PLY Files (*.ply)"
                 file_name, _ = QFileDialog.getSaveFileName(self, "Enregistrer la courbe", default_name, file_types)
                 if not file_name:
@@ -3201,7 +3065,7 @@ class AlgemaApp(QMainWindow):
         for param, default in {
             "m": 5, "a": 1, "b": 1,
             "n1": 2, "n2": 2, "n3": 2,
-            "couleur": "blue", "fond": "white", "épaisseur": 2
+            "couleur": "blue", "fond": "white", "épaisseur": 2, "longueur": 2 * np.pi, "nombre de points": 1000,
         }.items():
             label = QLabel(f"{param}:")
             input_field = QLineEdit(str(default))
@@ -3224,15 +3088,17 @@ class AlgemaApp(QMainWindow):
                 couleur = inputs["couleur"].text()
                 fond = inputs["fond"].text()
                 epaisseur = float(inputs["épaisseur"].text())
+                longueur = float(inputs["longueur"].text())
+                nombre_de_point = int(inputs["nombre de points"].text())
 
                 # Generate Superformula curve
-                theta = np.linspace(0, 2 * np.pi, 1000)
+                theta = np.linspace(0, longueur, nombre_de_point)
                 r = (abs(np.cos(m * theta / 4) / a) ** n2 + abs(np.sin(m * theta / 4) / b) ** n3) ** (-1 / n1)
                 x = r * np.cos(theta)
                 y = r * np.sin(theta)
 
                 # Plot
-                fig, ax = plt.subplots()
+                fig, ax = plt.subplots(figsize=(6, 6))
                 ax.plot(x, y, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
                 ax.axis('off')
@@ -3267,8 +3133,10 @@ class AlgemaApp(QMainWindow):
                 couleur = inputs["couleur"].text()
                 fond = inputs["fond"].text()
                 epaisseur = float(inputs["épaisseur"].text())
+                longueur = float(inputs["longueur"].text())
+                nombre_de_point = int(inputs["nombre de points"].text())
 
-                default_name = f"Superformule_m{m}_a{a}_b{b}_n1{n1}_n2{n2}_n3{n3}.png"
+                default_name = f"Superformule_m{m}_a{a}_b{b}_n1{n1}_n2{n2}_n3{n3}_{longueur:.2f}_points{nombre_de_point}.svg"
 
                 file_types = "PNG Files (*.png);;SVG Files (*.svg);;PLY Files (*.ply)"
                 file_name, _ = QFileDialog.getSaveFileName(self, "Enregistrer la courbe", default_name, file_types)
@@ -3276,7 +3144,7 @@ class AlgemaApp(QMainWindow):
                     return
 
                 # Generate Superformula curve
-                theta = np.linspace(0, 2 * np.pi, 1000)
+                theta = np.linspace(0, longueur, nombre_de_point)
                 r = (abs(np.cos(m * theta / 4) / a) ** n2 + abs(np.sin(m * theta / 4) / b) ** n3) ** (-1 / n1)
                 x = r * np.cos(theta)
                 y = r * np.sin(theta)
@@ -3341,7 +3209,7 @@ class AlgemaApp(QMainWindow):
 
         inputs = {}
         for param, default in {
-            "a": 1, "b": 1, "k": 5, "longueur": 2 * np.pi,
+            "a": 1, "m": 1, "theta max": 2*np.pi, "nombre de points": 1000,
             "couleur": "blue", "fond": "white", "épaisseur": 2
         }.items():
             label = QLabel(f"{param}:")
@@ -3357,21 +3225,20 @@ class AlgemaApp(QMainWindow):
             try:
                 # Fetch parameters
                 a = float(inputs["a"].text())
-                b = float(inputs["b"].text())
-                k = float(inputs["k"].text())
-                longueur = float(inputs["longueur"].text())
+                m = float(inputs["m"].text())
+                theta_max = float(inputs["theta max"].text())
                 couleur = inputs["couleur"].text()
                 fond = inputs["fond"].text()
                 epaisseur = float(inputs["épaisseur"].text())
+                nombre_de_point = int(inputs["nombre de points"].text())
 
                 # Generate Clélie 3D curve
-                t = np.linspace(0, longueur, 1000)
-                r = a + b * np.sin(k * t)
-                x = r * np.cos(t)
-                y = r * np.sin(t)
-                z = r * np.cos(k * t)
+                theta = np.linspace(0, theta_max, nombre_de_point)
+                x = a * np.cos(m * theta) * np.sin(theta)
+                y = a * np.sin(m * theta) * np.sin(theta)
+                z = a * np.cos(theta)
 
-                fig = plt.figure()
+                fig = plt.figure(figsize=(6, 6))
                 ax = fig.add_subplot(111, projection='3d')
                 ax.plot(x, y, z, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
@@ -3379,7 +3246,7 @@ class AlgemaApp(QMainWindow):
 
                 # Convert to image for preview
                 buf = BytesIO()
-                plt.savefig(buf, format='png', dpi=100, facecolor=fond)
+                plt.savefig(buf, format='svg', dpi=100, facecolor=fond)
                 buf.seek(0)
                 img = QImage()
                 img.loadFromData(buf.getvalue())
@@ -3403,14 +3270,14 @@ class AlgemaApp(QMainWindow):
 
                 # Fetch parameters
                 a = float(inputs["a"].text())
-                b = float(inputs["b"].text())
-                k = float(inputs["k"].text())
-                longueur = float(inputs["longueur"].text())
+                m = float(inputs["m"].text())
+                theta_max = float(inputs["theta max"].text())
                 couleur = inputs["couleur"].text()
                 fond = inputs["fond"].text()
                 epaisseur = float(inputs["épaisseur"].text())
+                nombre_de_point = int(inputs["nombre de points"].text())
 
-                default_name = f"Clelie3D_a{a}_b{b}_k{k}_longueur{longueur}.png"
+                default_name = f"Clelie3D_a{a}_m{m}_theta_max{theta_max}_points{nombre_de_point}.svg"
 
                 file_types = "PNG Files (*.png);;SVG Files (*.svg);;PLY Files (*.ply)"
                 file_name, _ = QFileDialog.getSaveFileName(self, "Enregistrer la courbe", default_name, file_types)
@@ -3418,13 +3285,12 @@ class AlgemaApp(QMainWindow):
                     return
 
                 # Generate Clélie 3D curve
-                t = np.linspace(0, longueur, 1000)
-                r = a + b * np.sin(k * t)
-                x = r * np.cos(t)
-                y = r * np.sin(t)
-                z = r * np.cos(k * t)
+                theta = np.linspace(0, theta_max, nombre_de_point)
+                x = a * np.cos(m * theta) * np.sin(theta)
+                y = a * np.sin(m * theta) * np.sin(theta)
+                z = a * np.cos(theta)
 
-                fig = plt.figure()
+                fig = plt.figure(figsize=(6, 6))
                 ax = fig.add_subplot(111, projection='3d')
                 ax.plot(x, y, z, color=couleur, linewidth=epaisseur)
                 ax.set_facecolor(fond)
@@ -3575,6 +3441,7 @@ class AlgemaApp(QMainWindow):
 
         def update_preview():
             try:
+                
                 n = n_input.value()
                 a = [float(a_input.text()) for a_input in a_inputs]
                 b = [float(b_input.text()) for b_input in b_inputs]
@@ -3614,7 +3481,7 @@ class AlgemaApp(QMainWindow):
                 background = background_input.text()
                 line_width = float(line_width_input.text())
 
-                default_name = f"Exponentielle_n{n}_theta{theta_max:.2f}.png"
+                default_name = f"Exponentielle_n{n}_theta{theta_max:.2f}.svg"
 
                 file_types = "PNG Files (*.png);;SVG Files (*.svg);;PLY Files (*.ply)"
                 file_name, _ = QFileDialog.getSaveFileName(self, "Enregistrer la courbe", default_name, file_types)
@@ -3692,6 +3559,10 @@ class AlgemaApp(QMainWindow):
         line_width_input = QLineEdit("2")
         scroll_layout.addWidget(line_width_input)
 
+        scroll_layout.addWidget(QLabel('Longueur de la courbe:'))
+        longueur_input = QLineEdit("6.28")
+        scroll_layout.addWidget(longueur_input)
+
         # Place the scrollable widget in the scroll area
         scroll_area.setWidget(scroll_widget)
         main_layout.addWidget(scroll_area)
@@ -3712,10 +3583,10 @@ class AlgemaApp(QMainWindow):
         # Buttons
         button_layout = QHBoxLayout()
 
-        def plot_hypertrochoid(R, r, d, num_points, color, background, line_width):
-            t = np.linspace(0, 2 * np.pi, num_points)
-            x = (R - r) * np.cos(t) + d * np.cos((R - r) * t / r)
-            y = (R - r) * np.sin(t) - d * np.sin((R - r) * t / r)
+        def plot_hypertrochoid(R, r, d,longueur, num_points, color, background, line_width):
+            t = np.linspace(0, longueur, num_points)
+            x = (R - r) * np.cos(t) + d * np.cos((R - r) / r / t)
+            y = (R - r) * np.sin(t) - d * np.sin((R - r) / r * t)
 
             fig, ax = plt.subplots(figsize = (6,6))
             ax.plot(x, y, color=color, linewidth=line_width)
@@ -3733,8 +3604,9 @@ class AlgemaApp(QMainWindow):
                 color = color_input.text()
                 background = background_input.text()
                 line_width = float(line_width_input.text())
+                longueur = float(longueur_input.text())
 
-                fig = plot_hypertrochoid(R, r, d, num_points, color, background, line_width)
+                fig = plot_hypertrochoid(R, r, d,longueur, num_points, color, background, line_width)
 
                 buf = BytesIO()
                 fig.savefig(buf, format='png', facecolor=background)
@@ -3759,11 +3631,12 @@ class AlgemaApp(QMainWindow):
                 r = float(r_input.text())
                 d = float(d_input.text())
                 num_points = int(num_points_input.text())
+                longueur = float(longueur_input.text())
                 color = color_input.text()
                 background = background_input.text()
                 line_width = float(line_width_input.text())
 
-                default_name = f"Hypertrochoide_R{R}_r{r}_d{d}.png"
+                default_name = f"Hypertrochoide_R{R}_r{r}_d{d}_num_points{num_points}_longueur{longueur}.svg"
 
                 file_types = "PNG Files (*.png);;SVG Files (*.svg);;PLY Files (*.ply)"
                 file_name, _ = QFileDialog.getSaveFileName(self, "Enregistrer la courbe", default_name, file_types)
