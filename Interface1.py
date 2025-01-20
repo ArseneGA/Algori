@@ -22,7 +22,6 @@ from matplotlib.patches import Circle
 
 from mpl_toolkits.mplot3d import Axes3D
 
-matplotlib.use('Agg')  # Force le backend pour éviter les problèmes sur macOS
 
 
 
