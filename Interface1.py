@@ -1,3 +1,4 @@
+
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel,
     QTabWidget, QPushButton, QComboBox, QLineEdit, QWidget,
@@ -20,6 +21,9 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Circle
 
 from mpl_toolkits.mplot3d import Axes3D
+
+matplotlib.use('Agg')  # Force le backend pour éviter les problèmes sur macOS
+
 
 
 
@@ -3246,7 +3250,7 @@ class AlgemaApp(QMainWindow):
 
                 # Convert to image for preview
                 buf = BytesIO()
-                plt.savefig(buf, format='svg', dpi=100, facecolor=fond)
+                plt.savefig(buf, format='png', dpi=100, facecolor=fond)
                 buf.seek(0)
                 img = QImage()
                 img.loadFromData(buf.getvalue())
